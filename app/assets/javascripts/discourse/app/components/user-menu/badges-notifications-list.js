@@ -1,8 +1,8 @@
 import UserMenuNotificationsList from "discourse/components/user-menu/notifications-list";
 
-export default class UserMenuMentionsNotificationsList extends UserMenuNotificationsList {
+export default class UserMenuBadgesNotificationsList extends UserMenuNotificationsList {
   get filterByTypes() {
-    return ["mentioned"];
+    return ["granted_badge"];
   }
 
   dismissWarningModal() {

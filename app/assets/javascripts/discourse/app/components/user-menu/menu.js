@@ -1,10 +1,13 @@
 import GlimmerComponent from "discourse/components/glimmer";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
-import UserMenuTab from "discourse/lib/user-menu/tab";
+import { WITH_REMINDER_ICON } from "discourse/models/bookmark";
+import UserMenuTab, { customTabsClasses } from "discourse/lib/user-menu/tab";
 
 const DEFAULT_TAB_ID = "all-notifications";
 const DEFAULT_PANEL_COMPONENT = "user-menu/notifications-list";
+
+const REVIEW_QUEUE_TAB_ID = "review-queue";
 
 const CORE_TOP_TABS = [
   class extends UserMenuTab {
@@ -66,6 +69,78 @@ const CORE_TOP_TABS = [
       return !this.currentUser.likes_notifications_disabled;
     }
   },
+
+  class extends UserMenuTab {
+    get id() {
+      return "pms";
+    }
+
+    get icon() {
+      return "far-envelope";
+    }
+
+    get panelComponent() {
+      return "user-menu/pms-notifications-list";
+    }
+
+    get count() {
+      return this.getUnreadCountForType("private_message");
+    }
+  },
+
+  class extends UserMenuTab {
+    get id() {
+      return "bookmarks";
+    }
+
+    get icon() {
+      return WITH_REMINDER_ICON;
+    }
+
+    get panelComponent() {
+      return "user-menu/bookmarks-notifications-list";
+    }
+
+    get count() {
+      return this.getUnreadCountForType("bookmark_reminder");
+    }
+  },
+
+  class extends UserMenuTab {
+    get id() {
+      return "badges";
+    }
+
+    get icon() {
+      return "certificate";
+    }
+
+    get panelComponent() {
+      return "user-menu/badges-notifications-list";
+    }
+  },
+
+  class extends UserMenuTab {
+    get id() {
+      return REVIEW_QUEUE_TAB_ID;
+    }
+
+    get icon() {
+      return "flag";
+    }
+
+    get panelComponent() {
+      return "user-menu/reviewables-list";
+    }
+
+    get shouldDisplay() {
+      return this.currentUser.can_review;
+    }
+
+    get count() {
+      return this.currentUser.get("reviewable_count");
+    }
+  },
 ];
 
 export default class UserMenu extends GlimmerComponent {
@@ -84,6 +159,21 @@ export default class UserMenu extends GlimmerComponent {
       const tab = new tabClass(this.currentUser, this.siteSettings, this.site);
       if (tab.shouldDisplay) {
         tabs.push(tab);
+      }
+    });
+    let reviewQueueTabIndex = tabs.findIndex(
+      (tab) => tab.id === REVIEW_QUEUE_TAB_ID
+    );
+    customTabsClasses.forEach((tabClass) => {
+      const tab = new tabClass(this.currentUser, this.siteSettings, this.site);
+      if (tab.shouldDisplay) {
+        // ensure the review queue tab is always last
+        if (reviewQueueTabIndex === -1) {
+          tabs.push(tab);
+        } else {
+          tabs.insertAt(reviewQueueTabIndex, tab);
+          reviewQueueTabIndex++;
+        }
       }
     });
     return tabs.map((tab, index) => {
